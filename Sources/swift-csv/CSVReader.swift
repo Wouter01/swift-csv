@@ -82,36 +82,22 @@ extension CSVReader {
         pieces.removeAll(keepingCapacity: true)
 
 
-
         while let value = try await iterator.next() {
             switch value {
             case 7: // double quotes
                 isEscaped.toggle()
             case 10 where !isEscaped: // line feed
-//                bytes[i] = 0
-//                bytes.append(0)
-
-                pieces.append(String.init(unsafeUninitializedCapacity: i) { buffer in
-                    buffer.moveInitialize(fromContentsOf: bytes[0..<i])
-                })
-//                pieces.append(String.init(decodingCString: bytes.baseAddress!, as: UTF8.self))
+                bytes[i] = 0
+                pieces.append(String.init(decodingCString: bytes.baseAddress!, as: UTF8.self))
                 return
             case 13 where !isEscaped: // carriage return
                 _ = try await iterator.next()
-//                bytes[i] = 0
-                pieces.append(String.init(unsafeUninitializedCapacity: i) { buffer in
-                    buffer.moveInitialize(fromContentsOf: bytes[0..<i])
-                })
-//                pieces.append(String.init(decodingCString: bytes.baseAddress!, as: UTF8.self))
+                bytes[i] = 0
+                pieces.append(String.init(decodingCString: bytes.baseAddress!, as: UTF8.self))
                 return
             case 44 where !isEscaped: // comma
-//                bytes[i] = 0
-//                bytes.append(0)
-
-                pieces.append(String.init(unsafeUninitializedCapacity: i) { buffer in
-                    buffer.moveInitialize(fromContentsOf: bytes[0..<i])
-                })
-//                pieces.append(String.init(decodingCString: bytes.baseAddress!, as: UTF8.self))
+                bytes[i] = 0
+                pieces.append(String.init(decodingCString: bytes.baseAddress!, as: UTF8.self))
                 i = 0
             default:
                 bytes[i] = value
