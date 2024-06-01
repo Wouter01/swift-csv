@@ -26,16 +26,14 @@ extension CSVReader {
         let headerCount = headers.count
 
         var pieces: [String] = []
-//        var bytes: [UInt8] = []
-//        bytes.reserveCapacity(1000)
-
-        var buffer = UnsafeMutableBufferPointer<UInt8>.allocate(capacity: 10000)
+        pieces.reserveCapacity(headerCount)
+        var bytes: [UInt8] = []
 
         let lineDecoder = CSVLineDecoder(headers: Set(headers), data: [])
 
         do {
             while true {
-                try await readLine(iterator: &iterator, pieces: &pieces, bytes: &buffer)
+                try await readLine(iterator: &iterator, pieces: &pieces, bytes: &bytes)
                 guard pieces.count == headerCount else { continue }
                 lineDecoder.data = pieces
                 instances.append(try T(from: lineDecoder))
@@ -43,8 +41,6 @@ extension CSVReader {
         } catch is CSVError {
             return instances
         }
-
-
 
         return instances
     }
@@ -75,41 +71,40 @@ extension CSVReader {
     }
 
 //    @inline(__always)
-    func readLine(iterator: inout URL.AsyncBytes.AsyncIterator, pieces: inout [String], bytes: inout UnsafeMutableBufferPointer<UInt8>) async throws {
+    func readLine(iterator: inout URL.AsyncBytes.AsyncIterator, pieces: inout [String], bytes: inout [UInt8]) async throws {
         var isEscaped = false
-        var i = 0
-        var hasEscaped = false
 
-//        bytes.removeAll(keepingCapacity: true)
+        var startIndex: Int = 0
+
+        bytes.removeAll(keepingCapacity: true)
         pieces.removeAll(keepingCapacity: true)
 
 
         while let value = try await iterator.next() {
             switch value {
             case 34: // double quotes
-                hasEscaped = true
+                startIndex = 1
                 isEscaped.toggle()
                 if isEscaped {
-                    bytes[i] = value
-                    i += 1
+                    bytes.append(value)
                 }
+
             case 10 where !isEscaped: // line feed
-                bytes[i] = 0
-                pieces.append(String.init(decodingCString: bytes.baseAddress!.advanced(by: hasEscaped ? 1 : 0), as: UTF8.self))
+                pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
                 return
+
             case 13 where !isEscaped: // carriage return
                 _ = try await iterator.next()
-                bytes[i] = 0
-                pieces.append(String.init(decodingCString: bytes.baseAddress!.advanced(by: hasEscaped ? 1 : 0), as: UTF8.self))
+                pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
                 return
+
             case 44 where !isEscaped: // comma
-                bytes[i] = 0
-                pieces.append(String.init(decodingCString: bytes.baseAddress!.advanced(by: hasEscaped ? 1 : 0), as: UTF8.self))
-                hasEscaped = false
-                i = 0
+                pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
+                bytes.removeAll(keepingCapacity: true)
+                startIndex = 0
+
             default:
-                bytes[i] = value
-                i += 1
+                bytes.append(value)
             }
         }
 
