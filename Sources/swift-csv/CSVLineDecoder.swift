@@ -128,9 +128,7 @@ extension CSVLineDecoder {
         let data: [String]
         let decoder: CSVLineDecoder
 
-        var codingPath: [any CodingKey] {
-            fatalError()
-        }
+        var codingPath: [any CodingKey] = []
 
         var allKeys: [Key] {
             fatalError()
@@ -141,7 +139,7 @@ extension CSVLineDecoder {
         }
 
         func decodeNil(forKey key: Key) throws -> Bool {
-            fatalError()
+            data[key.intValue!].isEmpty
         }
 
         func decode(_ type: Bool.Type, forKey key: Key) throws -> Bool {
@@ -156,13 +154,19 @@ extension CSVLineDecoder {
             return data[key.intValue!]
         }
 
+        @inline(__always)
         func decodeLossless<T>(_ type: T.Type, forKey key: Key) throws -> T where T: LosslessStringConvertible {
             switch T(data[key.intValue!]) {
             case .some(let value):
                 return value
             case .none:
-                throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Could not decode double")
+                throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Could not decode double from \(data[key.intValue!])")
             }
+        }
+
+        @inline(__always)
+        func decodeLossless<T>(_ type: T.Type, forKey key: Key) -> T? where T: LosslessStringConvertible {
+            T(data[key.intValue!])
         }
 
         func decode(_ type: Double.Type, forKey key: Key) throws -> Double {
@@ -213,10 +217,6 @@ extension CSVLineDecoder {
             try decodeLossless(type, forKey: key)
         }
 
-        struct Map<T: Decodable>: Decodable {
-            let a: T
-        }
-
         func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T : Decodable {
 //            let decoder = JSONDecoder()
             decoder.tempData = data[key.intValue!]
@@ -242,5 +242,68 @@ extension CSVLineDecoder {
         func superDecoder(forKey key: Key) throws -> any Decoder {
             decoder
         }
+
+        func decodeIfPresent(_ type: Double.Type, forKey key: Key) throws -> Double? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: Float.Type, forKey key: Key) throws -> Float? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: Int.Type, forKey key: Key) throws -> Int? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: Int8.Type, forKey key: Key) throws -> Int8? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: Int16.Type, forKey key: Key) throws -> Int16? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: Int32.Type, forKey key: Key) throws -> Int32? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: Int64.Type, forKey key: Key) throws -> Int64? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: UInt.Type, forKey key: Key) throws -> UInt? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: UInt8.Type, forKey key: Key) throws -> UInt8? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: UInt16.Type, forKey key: Key) throws -> UInt16? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: UInt32.Type, forKey key: Key) throws -> UInt32? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: UInt64.Type, forKey key: Key) throws -> UInt64? {
+            decodeLossless(type, forKey: key)
+        }
+
+        func decodeIfPresent(_ type: Bool.Type, forKey key: Key) throws -> Bool? {
+            switch data[key.intValue!] {
+            case "true": true
+            case "false": false
+            case "": nil
+            default: throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: #"Value is not "true" or "false""#)
+            }
+        }
+
+        func decodeIfPresent(_ type: String.Type, forKey key: Key) throws -> String? {
+            data[key.intValue!]
+        }
+
+
     }
 }
