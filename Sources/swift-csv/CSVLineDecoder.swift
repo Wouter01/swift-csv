@@ -160,7 +160,7 @@ extension CSVLineDecoder {
             case .some(let value):
                 return value
             case .none:
-                throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Could not decode double from \(data[key.intValue!])")
+                throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Could not decode \(type) from \(data[key.intValue!])")
             }
         }
 
