@@ -35,7 +35,6 @@ extension CSVReader {
         do {
             while true {
                 try await readLine(iterator: &iterator, pieces: &pieces, bytes: &buffer)
-//                print(pieces)
                 lineDecoder.data = pieces
                 instances.append(try T(from: lineDecoder))
             }
@@ -84,8 +83,10 @@ extension CSVReader {
 
         while let value = try await iterator.next() {
             switch value {
-            case 7: // double quotes
+            case 34: // double quotes
                 isEscaped.toggle()
+                bytes[i] = value
+                i += 1
             case 10 where !isEscaped: // line feed
                 bytes[i] = 0
                 pieces.append(String.init(decodingCString: bytes.baseAddress!, as: UTF8.self))
