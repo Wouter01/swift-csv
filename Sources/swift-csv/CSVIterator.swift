@@ -1,55 +1,55 @@
+//
+//  File.swift
+//  
+//
+//  Created by Wouter on 2/6/24.
+//
+
 import Foundation
 
-public struct CSVReader {
-    public init() {
-        
-    }
-}
+public struct CSVIterator<T: Decodable>: AsyncIteratorProtocol {
+    public typealias Element = T
 
-extension CSVReader {
+    var iterator: URL.AsyncBytes.AsyncIterator
 
-    public func read<T: Codable>(from url: URL, as type: T.Type = T.self, skipInvalidRows: Bool = true) async throws -> [T] {
-        var instances: [T] = []
+    var pieces: [String] = []
 
+    var bytes: [UInt8] = []
+
+    public let headers: [String]
+    let headerCount: Int
+    let skipInvalidRows: Bool
+    let lineDecoder: CSVLineDecoder
+
+    public init(url: URL, skipInvalidRows: Bool = false) async throws {
         var iterator = url.resourceBytes.makeAsyncIterator()
 
-        let headers = try await readHeader(iterator: &iterator)
-        let headerCount = headers.count
+        self.headers = try await Self.readHeader(iterator: &iterator)
+        self.skipInvalidRows = skipInvalidRows
+        self.iterator = iterator
+        self.headerCount = headers.count
+        self.lineDecoder = CSVLineDecoder(headers: Set(headers), data: [])
 
-        var pieces: [String] = []
         pieces.reserveCapacity(headerCount)
-        var bytes: [UInt8] = []
-
-        let lineDecoder = CSVLineDecoder(headers: Set(headers), data: [])
-
-        while try await readLine(iterator: &iterator, pieces: &pieces, bytes: &bytes) {
-            guard pieces.count == headerCount else {
-                if skipInvalidRows {
-                    continue
-                } else {
-                    throw CSVError.invalidRow(pieces: pieces)
-                }
-            }
-            lineDecoder.data = pieces
-            instances.append(try T(from: lineDecoder))
-        }
-
-        if !pieces.isEmpty {
-            guard pieces.count == headerCount else {
-                if skipInvalidRows {
-                    return instances
-                } else {
-                    throw CSVError.invalidRow(pieces: pieces)
-                }
-            }
-            lineDecoder.data = pieces
-            instances.append(try T(from: lineDecoder))
-        }
-
-        return instances
     }
 
-    func readHeader(iterator: inout URL.AsyncBytes.AsyncIterator) async throws -> [String] {
+    public mutating func next() async throws -> Element? {
+        guard try await readLine(iterator: &iterator, pieces: &pieces, bytes: &bytes) else {
+            return nil
+        }
+
+        guard pieces.count == headerCount else {
+            if skipInvalidRows {
+                return try await next()
+            } else {
+                throw CSVError.invalidRow(pieces: pieces)
+            }
+        }
+        lineDecoder.data = pieces
+        return try T(from: lineDecoder)
+    }
+
+    static func readHeader(iterator: inout URL.AsyncBytes.AsyncIterator) async throws -> [String] {
         var headers: [String] = []
         var piece: [UInt8] = []
 
@@ -74,7 +74,7 @@ extension CSVReader {
         return headers
     }
 
-//    @inline(__always)
+
     func readLine(iterator: inout URL.AsyncBytes.AsyncIterator, pieces: inout [String], bytes: inout [UInt8]) async throws -> Bool {
         var isEscaped = false
 
@@ -82,7 +82,6 @@ extension CSVReader {
 
         bytes.removeAll(keepingCapacity: true)
         pieces.removeAll(keepingCapacity: true)
-
 
         while let value = try await iterator.next() {
             switch value {
@@ -112,6 +111,20 @@ extension CSVReader {
             }
         }
 
-        return false
+        if !bytes.isEmpty {
+            pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
+        }
+
+        return !pieces.isEmpty
     }
+}
+
+extension CSVIterator: AsyncSequence {
+    public func makeAsyncIterator() -> CSVIterator<T> {
+        self
+    }
+    
+    public typealias AsyncIterator = Self
+
+
 }
