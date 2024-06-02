@@ -34,7 +34,7 @@ public struct CSVIterator<T: Decodable>: AsyncIteratorProtocol {
     }
 
     public mutating func next() async throws -> Element? {
-        guard try await readLine(iterator: &iterator, pieces: &pieces, bytes: &bytes) else {
+        guard try await readLine() else {
             return nil
         }
 
@@ -75,7 +75,7 @@ public struct CSVIterator<T: Decodable>: AsyncIteratorProtocol {
     }
 
 
-    func readLine(iterator: inout URL.AsyncBytes.AsyncIterator, pieces: inout [String], bytes: inout [UInt8]) async throws -> Bool {
+    mutating func readLine() async throws -> Bool {
         var isEscaped = false
 
         var startIndex: Int = 0
