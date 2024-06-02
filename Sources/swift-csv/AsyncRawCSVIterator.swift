@@ -18,7 +18,7 @@ public struct AsyncRawCSVIterator<Encoding: _UnicodeEncoding>: AsyncIteratorProt
 
     var bytes: [UInt8] = []
 
-    public internal(set) var headers: [String]?
+    public private(set) var headers: [String]?
 
     @usableFromInline
     var headerCount: Int?
@@ -138,6 +138,7 @@ public struct AsyncRawCSVIterator<Encoding: _UnicodeEncoding>: AsyncIteratorProt
 }
 
 extension AsyncRawCSVIterator: AsyncSequence {
+    @inlinable
     public func makeAsyncIterator() -> Self {
         self
     }

@@ -14,11 +14,7 @@ public struct AsyncRawAsDictCSVIterator<Encoding: _UnicodeEncoding>: AsyncIterat
     @usableFromInline
     var iterator: AsyncRawCSVIterator<Encoding>
 
-    public var headers: [String] {
-        didSet {
-            iterator.headers = headers
-        }
-    }
+    public var headers: [String]
 
     /// Create a new CSV iterator for the given URL.
     /// - Parameters:
@@ -37,7 +33,6 @@ public struct AsyncRawAsDictCSVIterator<Encoding: _UnicodeEncoding>: AsyncIterat
         let iterator = try await AsyncRawCSVIterator(url: url, hasHeaders: true, skipInvalidRows: skipInvalidRows, delimiter: delimiter, escapeCharacter: escapeCharacter, encoding: encoding)
 
         self.iterator = iterator
-
         self.headers = iterator.headers!
     }
 
@@ -48,6 +43,7 @@ public struct AsyncRawAsDictCSVIterator<Encoding: _UnicodeEncoding>: AsyncIterat
 }
 
 extension AsyncRawAsDictCSVIterator: AsyncSequence {
+    @inlinable
     public func makeAsyncIterator() -> Self {
         self
     }

@@ -20,7 +20,6 @@ public struct AsyncCodableCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>:
     public var headers: [String]? {
         didSet {
             lineDecoder.headers = headers
-            iterator.headers = headers
         }
     }
     
@@ -63,6 +62,7 @@ public struct AsyncCodableCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>:
 }
 
 extension AsyncCodableCSVIterator: AsyncSequence {
+    @inlinable
     public func makeAsyncIterator() -> Self {
         self
     }
