@@ -8,7 +8,7 @@
 import Foundation
 
 class CSVLineDecoder: Decoder {
-    let headers: Set<String>
+    var headers: Set<String>
     var data: [String]
     var tempData: String?
 

@@ -7,4 +7,6 @@
 
 public enum CSVError: Error {
     case invalidRow(pieces: [String])
+    case invalidDelimiter
+    case invalidEscapeCharacter
 }
