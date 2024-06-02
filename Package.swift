@@ -11,16 +11,20 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "swift-csv",
-            targets: ["swift-csv"]),
+            name: "SwiftCSV",
+            targets: ["SwiftCSV"]),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "swift-csv"),
+            name: "SwiftCSV",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
+            ]
+        ),
         .testTarget(
-            name: "swift-csvTests",
-            dependencies: ["swift-csv"]),
+            name: "SwiftCSVTests",
+            dependencies: ["SwiftCSV"]),
     ]
 )

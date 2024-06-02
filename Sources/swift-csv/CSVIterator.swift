@@ -47,7 +47,7 @@ public struct CSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncIterat
         escapeCharacter: Character = "\"",
         encoding: Encoding.Type = UTF8.self
     ) async throws {
-        var iterator = url.resourceBytes.makeAsyncIterator()
+        let iterator = url.resourceBytes.makeAsyncIterator()
 
         self.skipInvalidRows = skipInvalidRows
         self.iterator = iterator
@@ -65,7 +65,7 @@ public struct CSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncIterat
         self.escapeCharacter = escapeCharacter
 
         if hasHeaders {
-            try await readLine()
+            _ = try await readLine()
             self.headers = pieces
             let headerCount = pieces.count
             self.headerCount = headerCount
