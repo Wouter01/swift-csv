@@ -13,13 +13,16 @@ public struct AsyncRawCSVIterator<Encoding: _UnicodeEncoding>: AsyncIteratorProt
 
     var iterator: URL.AsyncBytes.AsyncIterator
 
+    @usableFromInline
     var pieces: [String] = []
 
     var bytes: [UInt8] = []
 
     public internal(set) var headers: [String]?
 
+    @usableFromInline
     var headerCount: Int?
+    @usableFromInline
     let skipInvalidRows: Bool
     let delimiter: UInt8
     let escapeCharacter: UInt8
@@ -66,6 +69,7 @@ public struct AsyncRawCSVIterator<Encoding: _UnicodeEncoding>: AsyncIteratorProt
         }
     }
 
+    @inlinable
     public mutating func next() async throws -> Element? {
         guard try await readLine() else {
             return nil
@@ -86,6 +90,7 @@ public struct AsyncRawCSVIterator<Encoding: _UnicodeEncoding>: AsyncIteratorProt
         return pieces
     }
 
+    @usableFromInline
     mutating func readLine() async throws -> Bool {
         var isEscaped = false
 
