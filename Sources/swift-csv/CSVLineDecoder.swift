@@ -8,7 +8,7 @@
 import Foundation
 
 class CSVLineDecoder: Decoder {
-    var headers: Set<String>
+    var headers: Set<String>?
     var data: [String]
     var tempData: String?
 
@@ -124,7 +124,7 @@ extension CSVLineDecoder {
 
 extension CSVLineDecoder {
     struct KeyContainerDecoder<Key: CodingKey>: KeyedDecodingContainerProtocol {
-        let headers: Set<String>
+        let headers: Set<String>?
         let data: [String]
         let decoder: CSVLineDecoder
 
@@ -135,7 +135,7 @@ extension CSVLineDecoder {
         }
 
         func contains(_ key: Key) -> Bool {
-            headers.contains(key.stringValue)
+            headers?.contains(key.stringValue) ?? false
         }
 
         func decodeNil(forKey key: Key) throws -> Bool {
