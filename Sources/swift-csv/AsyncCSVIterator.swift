@@ -8,7 +8,7 @@
 import Foundation
 
 /// A CSV iterator can lazily parse a CSV file. The whole file is not loaded into memory. Instead, it is parsed when the data is requested. If the data is not stored outside the iterator, the file can be parsed without using a lot of memory. The iterator can parse local and remote data.
-public struct CSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncIteratorProtocol where Encoding.CodeUnit == UInt8 {
+public struct AsyncCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncIteratorProtocol where Encoding.CodeUnit == UInt8 {
     public typealias Element = T
 
     var iterator: URL.AsyncBytes.AsyncIterator
@@ -140,12 +140,8 @@ public struct CSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncIterat
     }
 }
 
-extension CSVIterator: AsyncSequence {
-    public func makeAsyncIterator() -> CSVIterator<T, Encoding> {
+extension AsyncCSVIterator: AsyncSequence {
+    public func makeAsyncIterator() -> Self {
         self
     }
-    
-    public typealias AsyncIterator = Self
-
-
 }
