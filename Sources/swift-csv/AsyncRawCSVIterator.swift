@@ -8,8 +8,8 @@
 import Foundation
 
 /// A CSV iterator can lazily parse a CSV file. The whole file is not loaded into memory. Instead, it is parsed when the data is requested. If the data is not stored outside the iterator, the file can be parsed without using a lot of memory. The iterator can parse local and remote data.
-public struct AsyncCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncIteratorProtocol where Encoding.CodeUnit == UInt8 {
-    public typealias Element = T
+public struct AsyncRawCSVIterator<Encoding: _UnicodeEncoding>: AsyncIteratorProtocol where Encoding.CodeUnit == UInt8 {
+    public typealias Element = [String]
 
     var iterator: URL.AsyncBytes.AsyncIterator
 
@@ -17,18 +17,12 @@ public struct AsyncCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncI
 
     var bytes: [UInt8] = []
 
-    public var headers: [String]? {
-        didSet {
-            lineDecoder.headers = headers
-        }
-    }
+    public internal(set) var headers: [String]?
 
     var headerCount: Int?
     let skipInvalidRows: Bool
-    let lineDecoder: CSVLineDecoder
     let delimiter: UInt8
     let escapeCharacter: UInt8
-
 
     /// Create a new CSV iterator for the given URL.
     /// - Parameters:
@@ -41,19 +35,16 @@ public struct AsyncCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncI
     ///   - encoding: The encoding for the fields in the CSV. Before splitting the data into multiple fields, it is interpreted as being ASCII, following the CSV specification. Afterwards, fields are converted to strings with the specified encoding. By default, UTF8 is used.
     public init(
         url: URL,
-        as: T.Type = T.self,
         hasHeaders: Bool = true,
         skipInvalidRows: Bool = false,
         delimiter: Character = ",",
         escapeCharacter: Character = "\"",
-        encoding: Encoding.Type = UTF8.self,
-        booleanDecodingBehavior: BooleanDecodingBehavior = .disabled
+        encoding: Encoding.Type = UTF8.self
     ) async throws {
         let iterator = url.resourceBytes.makeAsyncIterator()
 
         self.skipInvalidRows = skipInvalidRows
         self.iterator = iterator
-        self.lineDecoder = CSVLineDecoder(headers: [], data: [], booleanDecodingBehavior: booleanDecodingBehavior)
 
         guard let delimiter = delimiter.asciiValue else {
             throw CSVError.invalidDelimiter
@@ -71,7 +62,6 @@ public struct AsyncCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncI
             self.headers = pieces
             let headerCount = pieces.count
             self.headerCount = headerCount
-            self.lineDecoder.headers = pieces
             pieces.reserveCapacity(headerCount)
         }
     }
@@ -92,8 +82,8 @@ public struct AsyncCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncI
                 throw CSVError.invalidRow(pieces: pieces)
             }
         }
-        lineDecoder.data = pieces
-        return try T(from: lineDecoder)
+
+        return pieces
     }
 
     mutating func readLine() async throws -> Bool {
@@ -142,7 +132,7 @@ public struct AsyncCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>: AsyncI
     }
 }
 
-extension AsyncCSVIterator: AsyncSequence {
+extension AsyncRawCSVIterator: AsyncSequence {
     public func makeAsyncIterator() -> Self {
         self
     }
