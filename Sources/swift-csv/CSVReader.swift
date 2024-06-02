@@ -7,17 +7,8 @@ public struct CSVReader {
 }
 
 extension CSVReader {
-    enum NewlineStrategy {
-        case lf
-        case crlf
-    }
-}
 
-
-
-extension CSVReader {
-
-    public func read<T: Codable>(from url: URL, as type: T.Type = T.self) async throws -> [T] {
+    public func read<T: Codable>(from url: URL, as type: T.Type = T.self, skipInvalidRows: Bool = true) async throws -> [T] {
         var instances: [T] = []
 
         var iterator = url.resourceBytes.makeAsyncIterator()
@@ -31,15 +22,28 @@ extension CSVReader {
 
         let lineDecoder = CSVLineDecoder(headers: Set(headers), data: [])
 
-        do {
-            while true {
-                try await readLine(iterator: &iterator, pieces: &pieces, bytes: &bytes)
-                guard pieces.count == headerCount else { continue }
-                lineDecoder.data = pieces
-                instances.append(try T(from: lineDecoder))
+        while try await readLine(iterator: &iterator, pieces: &pieces, bytes: &bytes) {
+            guard pieces.count == headerCount else {
+                if skipInvalidRows {
+                    continue
+                } else {
+                    throw CSVError.invalidRow(pieces: pieces)
+                }
             }
-        } catch is CSVError {
-            return instances
+            lineDecoder.data = pieces
+            instances.append(try T(from: lineDecoder))
+        }
+
+        if !pieces.isEmpty {
+            guard pieces.count == headerCount else {
+                if skipInvalidRows {
+                    return instances
+                } else {
+                    throw CSVError.invalidRow(pieces: pieces)
+                }
+            }
+            lineDecoder.data = pieces
+            instances.append(try T(from: lineDecoder))
         }
 
         return instances
@@ -71,7 +75,7 @@ extension CSVReader {
     }
 
 //    @inline(__always)
-    func readLine(iterator: inout URL.AsyncBytes.AsyncIterator, pieces: inout [String], bytes: inout [UInt8]) async throws {
+    func readLine(iterator: inout URL.AsyncBytes.AsyncIterator, pieces: inout [String], bytes: inout [UInt8]) async throws -> Bool {
         var isEscaped = false
 
         var startIndex: Int = 0
@@ -91,12 +95,12 @@ extension CSVReader {
 
             case 10 where !isEscaped: // line feed
                 pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
-                return
+                return true
 
             case 13 where !isEscaped: // carriage return
                 _ = try await iterator.next()
                 pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
-                return
+                return true
 
             case 44 where !isEscaped: // comma
                 pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
@@ -108,12 +112,12 @@ extension CSVReader {
             }
         }
 
-        throw CSVError.endOfFile
+        return false
     }
 }
 
 extension CSVReader {
     enum CSVError: Error {
-        case endOfFile
+        case invalidRow(pieces: [String])
     }
 }
