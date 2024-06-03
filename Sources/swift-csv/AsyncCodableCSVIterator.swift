@@ -19,7 +19,7 @@ public struct AsyncCodableCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>:
 
     public var headers: [String]? {
         didSet {
-            lineDecoder.headers = headers
+            lineDecoder.decoderData.headers = headers
         }
     }
     
@@ -49,14 +49,14 @@ public struct AsyncCodableCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>:
 
         self.iterator = iterator
         self.headers = iterator.headers
-        self.lineDecoder = CSVLineDecoder(headers: [], data: [], booleanDecodingBehavior: booleanDecodingBehavior)
+        self.lineDecoder = CSVLineDecoder(data: .init(booleanDecodingBehavior: booleanDecodingBehavior))
     }
 
     public mutating func next() async throws -> Element? {
         guard let pieces = try await iterator.next() else {
             return nil
         }
-        lineDecoder.data = pieces
+        lineDecoder.decoderData.data = pieces
         return try T(from: lineDecoder)
     }
 }

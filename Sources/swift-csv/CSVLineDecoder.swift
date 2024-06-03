@@ -7,24 +7,21 @@
 
 import Foundation
 
-class CSVLineDecoder: Decoder {
-    var headers: [String]?
-    var data: [String]
+final class CSVLineDecoder: Decoder {
     var tempData: String?
-    var booleanDecodingBehavior: BooleanDecodingBehavior
 
     var codingPath: [any CodingKey] = []
 
     var userInfo: [CodingUserInfoKey : Any] = [:]
 
-    init(headers: [String], data: [String], booleanDecodingBehavior: BooleanDecodingBehavior) {
-        self.headers = headers
-        self.data = data
-        self.booleanDecodingBehavior = booleanDecodingBehavior
+    let decoderData: DecoderData
+
+    init(data: DecoderData) {
+        self.decoderData = data
     }
 
     func container<Key>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> where Key : CodingKey {
-        KeyedDecodingContainer(KeyContainerDecoder<Key>(headers: headers, data: data, decoder: self, booleanDecodingBehavior: booleanDecodingBehavior))
+        KeyedDecodingContainer(KeyContainerDecoder<Key>(decoder: self))
     }
 
     func unkeyedContainer() throws -> any UnkeyedDecodingContainer {
@@ -33,6 +30,18 @@ class CSVLineDecoder: Decoder {
 
     func singleValueContainer() throws -> any SingleValueDecodingContainer {
         SVD(codingPath: codingPath, value: tempData!, decoder: self)
+    }
+}
+
+extension CSVLineDecoder {
+    final class DecoderData {
+        var headers: [String]?
+        var data: [String] = []
+        let booleanDecodingBehavior: BooleanDecodingBehavior
+
+        init(booleanDecodingBehavior: BooleanDecodingBehavior) {
+            self.booleanDecodingBehavior = booleanDecodingBehavior
+        }
     }
 }
 
@@ -119,25 +128,34 @@ extension CSVLineDecoder {
         func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
             try T(from: decoder)
         }
-
-
     }
 }
 
 extension CSVLineDecoder {
-    class KeyContainerDecoder<Key: CodingKey>: KeyedDecodingContainerProtocol {
-        var headers: [String]?
-        var data: [String]
+    final class KeyContainerDecoder<Key: CodingKey>: KeyedDecodingContainerProtocol {
+
         let decoder: CSVLineDecoder
-        let booleanDecodingBehavior: BooleanDecodingBehavior
+
+        @inline(__always)
+        var headers: [String]? {
+            decoder.decoderData.headers
+        }
+
+        @inline(__always)
+        var data: [String] {
+            decoder.decoderData.data
+        }
+
+        @inline(__always)
+        var booleanDecodingBehavior: BooleanDecodingBehavior {
+            decoder.decoderData.booleanDecodingBehavior
+        }
+
 
         var codingPath: [any CodingKey] = []
 
-        init(headers: [String]? = nil, data: [String], decoder: CSVLineDecoder, booleanDecodingBehavior: BooleanDecodingBehavior) {
-            self.headers = headers
-            self.data = data
+        init(decoder: CSVLineDecoder) {
             self.decoder = decoder
-            self.booleanDecodingBehavior = booleanDecodingBehavior
         }
 
         lazy var namedData: [String: String] = {
