@@ -130,7 +130,7 @@ public struct AsyncRawCSVIterator<Encoding: _UnicodeEncoding>: AsyncIteratorProt
         }
 
         if !bytes.isEmpty {
-            pieces.append(String(decoding: bytes[startIndex...], as: UTF8.self))
+            pieces.append(String(decoding: bytes[startIndex...], as: Encoding.self))
         }
 
         return !pieces.isEmpty
