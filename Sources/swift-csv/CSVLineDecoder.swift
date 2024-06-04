@@ -8,7 +8,7 @@
 import Foundation
 
 final class CSVLineDecoder: Decoder {
-    var tempData: String?
+
 
     var codingPath: [any CodingKey] = []
 
@@ -25,11 +25,11 @@ final class CSVLineDecoder: Decoder {
     }
 
     func unkeyedContainer() throws -> any UnkeyedDecodingContainer {
-        fatalError()
+        fatalError("Not supported yet. Please file a bug report.")
     }
 
     func singleValueContainer() throws -> any SingleValueDecodingContainer {
-        SVD(codingPath: codingPath, value: tempData!, decoder: self)
+        SVD(codingPath: codingPath, data: decoderData, decoder: self)
     }
 }
 
@@ -37,6 +37,7 @@ extension CSVLineDecoder {
     final class DecoderData {
         var headers: [String]?
         var data: [String] = []
+        var tempData: [String] = []
         let booleanDecodingBehavior: BooleanDecodingBehavior
 
         init(booleanDecodingBehavior: BooleanDecodingBehavior) {
@@ -49,8 +50,12 @@ extension CSVLineDecoder {
 
     struct SVD: SingleValueDecodingContainer {
         var codingPath: [any CodingKey]
-        let value: String
+        let data: DecoderData
         let decoder: CSVLineDecoder
+
+        var value: String {
+            data.tempData.last!
+        }
 
         func decodeLossless<T>(_ type: T.Type) throws -> T where T: LosslessStringConvertible {
             switch T(value) {
@@ -66,11 +71,7 @@ extension CSVLineDecoder {
         }
 
         func decode(_ type: Bool.Type) throws -> Bool {
-            switch value {
-            case "true": true
-            case "false": false
-            default: throw DecodingError.dataCorruptedError(in: self, debugDescription: #"Value is not "true" or "false""#)
-            }
+            try data.booleanDecodingBehavior.decode(value: value)
         }
 
         func decode(_ type: String.Type) throws -> String {
@@ -259,21 +260,18 @@ extension CSVLineDecoder {
         }
 
         func decode<T>(_ type: T.Type, forKey key: Key) throws -> T where T : Decodable {
-//            let decoder = JSONDecoder()
-            decoder.tempData = try getValue(for: key)
+            decoder.decoderData.tempData.append(try getValue(for: key))
             let v = try T.init(from: decoder)
-            decoder.tempData = nil
+            decoder.decoderData.tempData.removeLast()
             return v
-//            return try decoder.decode(Map<T>.self, from: "{ \"a\": \"\(data[key.intValue!])\" }".data(using: .ascii)!).a
-
         }
 
         func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: Key) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
-            fatalError()
+            KeyedDecodingContainer(KeyContainerDecoder<NestedKey>(decoder: decoder))
         }
 
         func nestedUnkeyedContainer(forKey key: Key) throws -> any UnkeyedDecodingContainer {
-            fatalError()
+            fatalError("Not supported yet. Please file a bug report.")
         }
 
         func superDecoder() throws -> any Decoder {
@@ -345,7 +343,7 @@ extension CSVLineDecoder {
         }
 
         func decodeIfPresent<T>(_ type: T.Type, forKey key: Key) throws -> T? where T : Decodable {
-            fatalError()
+            try decode(type, forKey: key)
         }
     }
 }
