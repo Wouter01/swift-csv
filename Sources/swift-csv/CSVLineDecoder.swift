@@ -40,7 +40,8 @@ extension CSVLineDecoder {
         var tempData: [String] = []
         let booleanDecodingBehavior: BooleanDecodingBehavior
 
-        init(booleanDecodingBehavior: BooleanDecodingBehavior) {
+        init(headers: [String]?, booleanDecodingBehavior: BooleanDecodingBehavior) {
+            self.headers = headers
             self.booleanDecodingBehavior = booleanDecodingBehavior
         }
     }

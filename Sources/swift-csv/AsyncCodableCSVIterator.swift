@@ -49,7 +49,7 @@ public struct AsyncCodableCSVIterator<T: Decodable, Encoding: _UnicodeEncoding>:
 
         self.iterator = iterator
         self.headers = iterator.headers
-        self.lineDecoder = CSVLineDecoder(data: .init(booleanDecodingBehavior: booleanDecodingBehavior))
+        self.lineDecoder = CSVLineDecoder(data: .init(headers: iterator.headers, booleanDecodingBehavior: booleanDecodingBehavior))
     }
 
     public mutating func next() async throws -> Element? {
